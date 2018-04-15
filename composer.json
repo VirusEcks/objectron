@@ -19,8 +19,7 @@
   "autoload": {
     "psr-0": {
       "VirusEcks\\Objectron": "src"
-    },
-    "classmap": ["tests/"]
+    }
   },
   "require": {
     "php" : ">=7.0"

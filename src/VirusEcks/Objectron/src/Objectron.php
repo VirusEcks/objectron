@@ -20,7 +20,7 @@ final class Objectron
     private $_length = 0;
     private $_tokens = array();
     private $_tokens_count = 0;
-    private $_delimeter = '';
+    private $_delimiter = '';
     private $_errors = [];
 
     private $data = [];
@@ -44,7 +44,7 @@ final class Objectron
      */
     public function __construct($data, string $varid = null, string $format = null)
     {
-        $this->_delimeter = '/';
+        $this->_delimiter = '/';
 
         $this->result = new \stdClass();
 
@@ -58,6 +58,10 @@ final class Objectron
     }
 
 
+    /**
+     * convert the input to object
+     * @return \stdClass
+     */
     public function toObject()
     {
         if ($this->done) {
@@ -137,14 +141,14 @@ final class Objectron
             if ($this->_rinput !== '') {
 
                 for ($i = 0; $i < $this->_length; $i++) {
-                    if ($lasterror = preg_match($this->_patterns[$i]['regex'], $this->_rinput, $matches)) {
+                    if ($lasterror = @preg_match($this->_patterns[$i]['regex'], $this->_rinput, $matches)) {
                         ++$this->_tokens_count;
                         $matches[0] = trim($matches[0]);
                         $this->_tokens[] = array('name' => $this->_patterns[$i]['name'], 'token' => $matches[0]);
 
                         //remove last found token from the $input string
                         //we use preg_quote to escape any regular expression characters in the matched input
-                        $this->_rinput = trim(preg_replace($this->_delimeter . "^" . preg_quote($matches[0], $this->_delimeter) . $this->_delimeter, "", $this->_rinput));
+                        $this->_rinput = trim(preg_replace($this->_delimiter . "^" . preg_quote($matches[0], $this->_delimiter) . $this->_delimiter, "", $this->_rinput));
                         $is_match = true;
 
                         continue;
