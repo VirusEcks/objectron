@@ -7,7 +7,8 @@
  */
 
 
-require_once 'Objectron.php';
+require_once '../vendor/autoload.php';
+
 
 
 $arr[] = ['id'=> 1, 'name'=>'john', 'class'=>10];

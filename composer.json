@@ -18,16 +18,14 @@
   ],
   "autoload": {
     "psr-0": {
-      "\\": "src"
-    }
+      "Objectron": "/src"
+    },
+    "classmap": [
+      "src/"
+    ]
   },
   "require": {
     "php" : ">=7.0"
-  },
-  "require-dev": {
-
-  },
-  "suggest": {
   },
   "repositories": [
     {
@@ -36,14 +34,17 @@
         "name": "virusecks/objectron",
         "version": "dev-master",
         "source": {
-          "url": "https://bitbucket.org/VirusEcks/objectron.git",
+          "url": "https://github.com/VirusEcks/objectron",
           "type": "git",
           "reference": "master"
         },
         "autoload": {
           "psr-0" : {
-            "\\" : "src"
-          }
+            "Objectron" : "/src"
+          },
+          "classmap": [
+            "src/"
+          ]
         }
       }
     }
