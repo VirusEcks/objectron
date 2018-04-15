@@ -99,9 +99,9 @@ final class Objectron
                 $id = $value[$this->varid] ?? $datum;
                 $this->result->$id = $this->_structure;
                 foreach ($this->_required_vars as $myvar => $var) {
-                    if (is_array($value) && isset($value[$myvar])) {
+                    if (is_array($value) && array_key_exists($myvar,$value)) {
                         $var($value[$myvar], $this->result->$id);
-                    } elseif (is_object($value) && isset($value->$myvar)) {
+                    } elseif (is_object($value) && property_exists($value,$myvar)) {
                         $var($value->$myvar, $this->result->$id);
                     }
                 }
