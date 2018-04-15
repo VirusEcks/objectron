@@ -6,8 +6,6 @@
  * Time: 1:16 PM
  */
 
-namespace VirusEcks\Objectron;
-
 
 /**
  * Class Objectron

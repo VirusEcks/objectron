@@ -1,7 +1,4 @@
-# objectron
-Objectron uses string template to design classes
-
-# Product Name
+# Objectron
 > Objectron uses string template to return a designed class.
 
 

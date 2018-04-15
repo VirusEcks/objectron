@@ -18,7 +18,7 @@
   ],
   "autoload": {
     "psr-0": {
-      "VirusEcks\\Objectron": "src"
+      "\\": "src"
     }
   },
   "require": {
@@ -42,7 +42,7 @@
         },
         "autoload": {
           "psr-0" : {
-            "VirusEcks\\Objectron" : "src"
+            "\\" : "src"
           }
         }
       }

@@ -10,8 +10,6 @@
 require_once 'Objectron.php';
 
 
-use VirusEcks\Objectron\Objectron;
-
 $arr[] = ['id'=> 1, 'name'=>'john', 'class'=>10];
 $arr[] = ['id'=> 5, 'name'=>'clam', 'class'=>4];
 $arr[] = ['id'=> 8, 'name'=>'robot', 'class'=>1];
