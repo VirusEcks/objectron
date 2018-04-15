@@ -32,5 +32,3 @@ echo "Done in $val ms";
 print_r($result1);
 print_r($result2);
 print_r($result3);
-
-//echo "<pre>";
