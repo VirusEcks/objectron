@@ -1,0 +1,51 @@
+{
+  "name": "virusecks/objectron",
+  "description": "Object creator from template",
+  "keywords": [
+    "stdClass",
+    "object",
+    "array",
+    "template"
+  ],
+  "minimum-stability": "stable",
+  "license": "BSD-3-Clause",
+  "authors": [
+    {
+      "name": "Ahmed Salah",
+      "email": "virus.ecks@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-0": {
+      "VirusEcks\\Objectron": "src"
+    },
+    "classmap": ["tests/"]
+  },
+  "require": {
+    "php" : ">=7.0"
+  },
+  "require-dev": {
+
+  },
+  "suggest": {
+  },
+  "repositories": [
+    {
+      "type": "package",
+      "package": {
+        "name": "virusecks/objectron",
+        "version": "dev-master",
+        "source": {
+          "url": "https://bitbucket.org/VirusEcks/objectron.git",
+          "type": "git",
+          "reference": "master"
+        },
+        "autoload": {
+          "psr-0" : {
+            "VirusEcks\\Objectron" : "src"
+          }
+        }
+      }
+    }
+  ]
+}
