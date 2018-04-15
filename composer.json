@@ -1,5 +1,6 @@
 {
   "name": "virusecks/objectron",
+  "type": "library",
   "description": "Object creator from template",
   "keywords": [
     "stdClass",
@@ -8,7 +9,7 @@
     "template"
   ],
   "minimum-stability": "stable",
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "authors": [
     {
       "name": "Ahmed Salah",
