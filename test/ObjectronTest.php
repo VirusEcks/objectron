@@ -26,6 +26,9 @@ $result2 = $obj2->toObject();
 $obj3 = new Objectron($arr, 'id', '%%name%%');
 $result3 = $obj3->toObject();
 
+$obj4 = new Objectron($arr, 'id');
+$result4 = $obj4->toObject();
+
 $end = microtime(true);
 $val = $end - $start;
 echo "Done in $val ms";
@@ -33,3 +36,4 @@ echo "Done in $val ms";
 print_r($result1);
 print_r($result2);
 print_r($result3);
+print_r($result4);

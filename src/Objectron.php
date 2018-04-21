@@ -83,7 +83,13 @@ final class Objectron
 
         if ($this->varid && !$this->format) {
             foreach ($this->data as $datum => $value) {
-                $id = $value[$this->varid] ?? $datum;
+                if (is_array($value) && array_key_exists($this->varid,$value)) {
+                    $id = $value[$this->varid];
+                } elseif (is_object($value) && property_exists($value,$this->varid)) {
+                    $id = $value->{$this->varid};
+                } else {
+                    $id = $datum;
+                }
                 $this->result->$id = $value;
             }
             $this->done = true;
