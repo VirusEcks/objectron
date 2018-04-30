@@ -16,347 +16,301 @@
 final class Objectron
 {
 
-    private $_patterns = array();
-    private $_length = 0;
-    private $_tokens = array();
-    private $_tokens_count = 0;
-    private $_delimiter = '';
-    private $_errors = [];
-
-    private $data = [];
-    private $varid = null;
-    private $format = null;
-
-    private $_rinput = null;
-    private $_structure = null;
-    private $_required_vars = [];
-
-    private $result = null;
-    private $done = false;
-
-
-    /**
-     * Objectron constructor.
-     * @param Mixed $data the array or object to read data from
-     * @param string|null $varid the id of each row in the object returned (without the %%)
-     * @param string|null $format the format to be applied
-     * @example Objectron($array, 'id', 'Student Class=%%class%%, Student Name => %%name%% ,Student group=>[Student Class=%%class%%]');
-     */
-    public function __construct($data, string $varid = null, string $format = null)
+    public function __construct()
     {
-        $this->_delimiter = '/';
-
-        $this->result = new \stdClass();
-
-        $this->data = $data;
-        $this->varid = $varid;
-        $this->format = $format;
-        $this->_rinput = $format;
-
-        $this->initTokenizer();
 
     }
 
 
     /**
-     * convert the input to object
-     * @return \stdClass
+     * @param $that array|object the object to get the property from
+     * @param string $property_name
+     * @param mixed $default_value default value if the property is not found (default is null)
+     * @return mixed|null
      */
-    public function toObject()
+    public static function getPropertyValueFrom($that, string $property_name, $default_value = null)
     {
-        if ($this->done) {
-            return $this->result;
-        }
-
-        if (!$this->data) {
-            $this->done = true;
-            return $this->result;
-        }
-
-        if (!$this->format && !$this->varid) {
-            foreach ($this->data as $datum => $value) {
-                $this->result->$datum = $value;
+        if (is_array($that)) {
+            if (array_key_exists($property_name, $that)) {
+                $value = $that[$property_name];
+            } else {
+                $value = $default_value;
             }
-            $this->done = true;
-            return $this->result;
-        }
-
-        if ($this->varid && !$this->format) {
-            foreach ($this->data as $datum => $value) {
-                if (is_array($value) && array_key_exists($this->varid,$value)) {
-                    $id = $value[$this->varid];
-                } elseif (is_object($value) && property_exists($value,$this->varid)) {
-                    $id = $value->{$this->varid};
-                } else {
-                    $id = $datum;
-                }
-                $this->result->$id = $value;
+        } elseif (is_object($that)) {
+            // TODO: check if the property is accessible or not before using
+            if (property_exists($that, $property_name)) {
+                $value = $that->{$property_name};
+            } elseif (method_exists($that, 'get' . $property_name)) {
+                $value = $that->{'get' . $property_name}();
+            } elseif (method_exists($that, 'get_' . $property_name)) {
+                $value = $that->{'get_' . $property_name}();
+            } elseif (method_exists($that, $property_name)) {
+                $value = $that->{$property_name}();
+            } else {
+                $value = $default_value;
             }
-            $this->done = true;
-            return $this->result;
+        } else {
+            $value = $default_value;
         }
 
-        $this->tokenize();
-        $this->make_structure();
+        return $value;
+    }
 
-        if ($this->_tokens_count == 1) {
+    /**
+     * @param $data
+     * @param string|null $varid
+     * @param string|null $format
+     * @return stdClass
+     */
+    public static function toObject($data, string $varid = null, string $format = null)
+    {
+        $result = new \stdClass();
 
-            foreach ($this->data as $datum => $value) {
-                $id = $value[$this->varid] ?? $datum;
-                $this->result->$id = $this->_structure;
-                foreach ($this->_required_vars as $myvar => $var) {
-                    if (is_array($value) && array_key_exists($myvar,$value)) {
-                        $var($value[$myvar], $this->result->$id);
-                    } elseif (is_object($value) && property_exists($value,$myvar)) {
-                        $var($value->$myvar, $this->result->$id);
-                    }
-                }
+        if (!$data) {
+            return $result;
+        }
+
+        if (!$varid && !$format) {
+
+            foreach ($data as $datumid => $datumvalue) {
+                $result->{$datumid} = $datumvalue;
+            }
+
+        } elseif ($varid && !$format) {
+
+            foreach ($data as $datumid => $datumvalue) {
+                $id = self::getPropertyValueFrom($datumvalue, $varid, $datumid);
+                $result->{$id} = $datumvalue;
             }
 
         } else {
 
-            foreach ($this->data as $datum => $value) {
-                $id = $value[$this->varid] ?? $datum;
-                $this->result->$id = clone($this->_structure);
-                foreach ($value as $valuen => $valuev) {
-                    if (isset($this->_required_vars[$valuen])) {
-                        foreach ($this->_required_vars[$valuen] as $var) {
-                            $var($valuev, $this->result->$id);
+            $_tokens = self::Tokenize($format);
+            $_required_vars = [];
+            $_structure = self::BuildStructure($_tokens, $_required_vars);
+
+            if (count($_tokens) == 1) {
+
+                foreach ($data as $datumid => $datumvalue) {
+                    $id = self::getPropertyValueFrom($datumvalue, $varid, $datumid);
+                    $result->{$id} = $_structure;
+                    foreach ($_required_vars as $varname => $var) {
+                        $value = self::getPropertyValueFrom($datumvalue, $varname);
+                        $var($value, $result->{$id});
+                    }
+                }
+
+            } else {
+
+                foreach ($data as $datumid => $datumvalue) {
+                    $id = self::getPropertyValueFrom($datumvalue, $varid, $datumid);
+                    $result->{$id} = clone($_structure);
+                    foreach ($datumvalue as $varname => $val) {
+                        if (isset($_required_vars[$varname])) {
+                            foreach ($_required_vars[$varname] as $var) {
+                                $var($val, $result->{$id});
+                            }
                         }
                     }
                 }
+
             }
 
         }
 
-        $this->done = true;
-        return $this->result;
-
+        return $result;
     }
 
 
-    private function tokenize()
+    /**
+     * @param string $data data or format to tokenize
+     * @param array|null $_errors reference to an array to put errors into
+     * @return array
+     */
+    public static function Tokenize(string $data, array &$_errors = null)
     {
-        $is_match = true;
-        $matches = null;
+        $_tokens = [];
 
-        while ($is_match) {
+        if (!$data) {
+            return $_tokens;
+        }
 
-            $is_match = false;
+        $matches    = null;
+        $regex      = '%'. implode('|', self::getTokenizerVars()) .'%i';
+        $result     = preg_match_all($regex, $data, $matches, PREG_PATTERN_ORDER);
 
-            if ($this->_rinput !== '') {
+        if ($result === false) {
+            if ($_errors) {
+                $_errors[] = 'Tokenizer error: '. $result .', '. array_flip(get_defined_constants(true)['pcre'])[preg_last_error()];
+            }
+            return $_tokens;
+        }
 
-                for ($i = 0; $i < $this->_length; $i++) {
-                    if ($lasterror = @preg_match($this->_patterns[$i]['regex'], $this->_rinput, $matches)) {
-                        ++$this->_tokens_count;
-                        $matches[0] = trim($matches[0]);
-                        $this->_tokens[] = array('name' => $this->_patterns[$i]['name'], 'token' => $matches[0]);
-
-                        //remove last found token from the $input string
-                        //we use preg_quote to escape any regular expression characters in the matched input
-                        $this->_rinput = trim(preg_replace($this->_delimiter . "^" . preg_quote($matches[0], $this->_delimiter) . $this->_delimiter, "", $this->_rinput));
-                        $is_match = true;
-
-                        continue;
-                    } elseif ($lasterror === false) {
-                        $this->_errors[] = 'Tokenizing error @pattern:' . $this->_patterns[$i]['name'] . ' string: ' . $this->_rinput;
-
-                        continue;
+        foreach ($matches as $id => $match) {
+            if (!is_int($id)) {
+                foreach ($match as $match_id => $match_value) {
+                    if ($match_value) {
+                        $_tokens[$match_id] = [
+                            'name'  => $id,
+                            'token' => $match_value
+                        ];
                     }
                 }
-
             }
-
         }
 
+        return $_tokens;
     }
 
-    private function make_structure()
+    // TODO: add option for array and class tokens
+    private static function BuildStructure(array $_tokens, array &$_required_vars, array &$_errors = null)
     {
         $expecting_value = false; // false is varname, true is variable
 
-        $lasttoken   = '';
-        $lastvarname = '';
-        $lastindex   = 0;
+        $last_token   = '';
+        $last_variable_name = '';
+        $last_index   = 0;
 
-        $this->_required_vars = [];
-        if ($this->_tokens_count == 1) {
-            $this->_structure     = '';
+        $_tokens_count = count($_tokens);
+
+        if ($_tokens_count == 1) {
+            $_structure     = '';
         } else {
-            $this->_structure     = new \stdClass();
+            $_structure     = new \stdClass();
         }
 
-        for ($i = 0; $i < $this->_tokens_count; $i++) {
-            switch ($this->_tokens[$i]['name']) {
+        for ($i = 0; $i < $_tokens_count; $i++) {
+            switch ($_tokens[$i]['name']) {
                 case 'NAME':
-                    if ($lasttoken != 'NAME') {
+                    if ($last_token != 'NAME') {
+
                         if ($expecting_value === false) {
 
-                            if (!isset($this->_tokens[$i+1]['name']) || $this->_tokens[$i+1]['name'] == 'DELIMITER') {
-
-                                if ($this->_tokens_count == 1) {
-                                    $this->_structure = $this->_tokens[$i]['token'];
+                            if (!isset($_tokens[$i+1]['name']) || $_tokens[$i+1]['name'] == 'DELIMITER') {
+                                if ($_tokens_count == 1) {
+                                    $_structure = $_tokens[$i]['token'];
                                 } else {
-                                    $this->_structure->{$lastindex} = $this->_tokens[$i]['token'];
+                                    $_structure->{$last_index} = $_tokens[$i]['token'];
                                 }
-                                ++$lastindex;
-
+                                ++$last_index;
                             } else {
-
-                                $this->_structure->{$this->_tokens[$i]['token']} = null;
-                                $lastvarname = $this->_tokens[$i]['token'];
-
+                                $_structure->{$_tokens[$i]['token']} = null;
+                                $last_variable_name = $_tokens[$i]['token'];
                             }
 
                         } else {
 
-                            $this->_structure->{$lastvarname} = $this->_tokens[$i]['token'];
-                            $lastvarname = '';
+                            $_structure->{$last_variable_name} = $_tokens[$i]['token'];
+                            $last_variable_name = '';
                         }
+
                     } else {
-                        $this->_errors[] = 'parse error @NAME : 2 consecutive names ! : ' . $this->_tokens[$i - 1]['token'] . ' | ' . $this->_tokens[$i]['token'];
+
+                        if ($_errors) {
+                            $_errors[] = 'parse error @NAME : 2 consecutive names ! : ' . $_tokens[$i - 1]['token'] . ' | ' . $_tokens[$i]['token'];
+                        }
+
                     }
-                    $lasttoken = 'NAME';
+                    $last_token = 'NAME';
                     break;
 
                 case 'DELIMITER':
                     $expecting_value = false;
-                    $lasttoken = 'DELIMITER';
+                    $last_token = 'DELIMITER';
                     break;
 
                 case 'EQUALS':
                     $expecting_value = true;
-                    $lasttoken = 'EQUALS';
+                    $last_token = 'EQUALS';
                     break;
 
                 case 'VARIABLE':
-                    if ($lasttoken != 'VARIABLE') {
+                    if ($last_token != 'VARIABLE') {
 
-                        $var = trim($this->_tokens[$i]['token'], "%");
+                        $var = trim($_tokens[$i]['token'], "%");
 
-                        if (!isset($this->_required_vars[$var])) {
-                            if ($this->_tokens_count !== 1) {
-                                $this->_required_vars[$var] = [];
+                        if (!isset($_required_vars[$var])) {
+                            if ($_tokens_count !== 1) {
+                                $_required_vars[$var] = [];
                             }
                         }
 
                         if ($expecting_value === false) {
+
                             // look ahead for the next delimiter or var
-                            if (!isset($this->_tokens[$i+1]['name']) || $this->_tokens[$i+1]['name'] == 'DELIMITER') {
+                            if (!isset($_tokens[$i+1]['name']) || $_tokens[$i+1]['name'] == 'DELIMITER') {
 
-                                if ($this->_tokens_count == 1) {
-
-                                    $this->_structure = $this->_tokens[$i]['token'];
-
-                                    $this->_required_vars[$var] = function ($value, &$struct) {
+                                if ($_tokens_count == 1) {
+                                    $_structure = $_tokens[$i]['token'];
+                                    $_required_vars[$var] = function ($value, &$struct) {
                                         $struct = $value;
                                     };
-
                                 } else {
-
-                                    $this->_structure->{$lastindex} = $this->_tokens[$i]['token'];
-
-                                    $this->_required_vars[$var][] = function ($value, &$struct) use ($lastindex) {
-                                        $struct->{$lastindex} = $value;
+                                    $_structure->{$last_index} = $_tokens[$i]['token'];
+                                    $_required_vars[$var][] = function ($value, &$struct) use ($last_index) {
+                                        $struct->{$last_index} = $value;
                                     };
-
                                 }
-
-                                ++$lastindex;
+                                ++$last_index;
 
                             } else {
 
-                                $this->_structure->{$this->_tokens[$i]['token']} = null;
-                                $lastvarname = $this->_tokens[$i]['token'];
-
-                                $this->_required_vars[$var][] = function ($value, &$struct) {
+                                $_structure->{$_tokens[$i]['token']} = null;
+                                $last_variable_name = $_tokens[$i]['token'];
+                                $_required_vars[$var][] = function ($value, &$struct) {
                                     $struct->{$value} = null;
                                 };
 
                             }
-                        } else {
-                            $this->_structure->{$lastvarname} = $this->_tokens[$i]['token'];
 
-                            $this->_required_vars[$var][] = function ($value, &$struct) use ($lastvarname) {
-                                $struct->{$lastvarname} = $value;
+                        } else {
+
+                            $_structure->{$last_variable_name} = $_tokens[$i]['token'];
+                            $_required_vars[$var][] = function ($value, &$struct) use ($last_variable_name) {
+                                $struct->{$last_variable_name} = $value;
                             };
 
-                            $lastvarname = '';
+                            $last_variable_name = '';
                         }
+
                     } else {
-                        $this->_errors[] = 'parse error @VARIABLE : 2 consecutive variables ! : ' . $this->_tokens[$i - 1]['token'] . ' | ' . $this->_tokens[$i]['token'];
+
+                        if ($_errors) {
+                            $_errors[] = 'parse error @VARIABLE : 2 consecutive variables ! : ' . $_tokens[$i - 1]['token'] . ' | ' . $_tokens[$i]['token'];
+                        }
+
                     }
-                    $lasttoken = 'VARIABLE';
+                    $last_token = 'VARIABLE';
                     break;
             }
         }
+
+        return $_structure;
     }
 
-
-    /**
-     * Add a regular expression to the Tokenizer
-     *
-     * @param string $name name of the token
-     * @param string $pattern the regular expression to match
-     */
-    private function add($name, $pattern)
+    private static function getTokenizerVars()
     {
-        $this->_patterns[$this->_length]['name'] = $name;
-        $this->_patterns[$this->_length]['regex'] = $pattern;
-        $this->_length++;
-    }
+        $patterns[] =
+<<<'REGEX'
+(?P<NAME>\b[\w\s]+\b)
+REGEX;
 
+        $patterns[] =
+<<<'REGEX'
+(?P<VARIABLE>\%[\w\s]+\%)
+REGEX;
 
-    private function initTokenizer()
-    {
-        $this->add("NAME",
-<<<'NAME'
-/^[a-zA-Z0-9\s\\]+/
-NAME
-        );
+        $patterns[] =
+<<<'REGEX'
+(?P<EQUALS>\={1}\>?)
+REGEX;
 
-        $this->add("EQUALS",
-<<<'EQUALS'
-/^=>?/
-EQUALS
-        );
+        $patterns[] =
+<<<'REGEX'
+(?P<DELIMITER>,)
+REGEX;
 
-        $this->add("VARIABLE",
-<<<'VARIABLE'
-/^%%[a-zA-Z0-9\s\\]+%%/
-VARIABLE
-        );
-
-        $this->add("DELIMITER",
-<<<'DELIMTER'
-/^\s?,\s?/
-DELIMTER
-        );
-
-    }
-
-    /**
-     * @return array
-     */
-    public function getTokens(): array
-    {
-        return $this->_tokens;
-    }
-
-    /**
-     * @return null|\stdClass
-     */
-    public function getResult(): \stdClass
-    {
-        return $this->result;
-    }
-
-    /**
-     * @return array
-     */
-    public function getErrors(): array
-    {
-        return $this->_errors;
+        return $patterns;
     }
 
 

@@ -7,7 +7,7 @@
  */
 
 
-require_once '../vendor/autoload.php';
+require_once '../src/Objectron.php';
 
 
 
@@ -17,23 +17,23 @@ $arr[] = ['id'=> 8, 'name'=>'robot', 'class'=>1];
 
 $start = microtime(true);
 
-$obj1 = new Objectron($arr, 'id', '%%id%%, Student Class=%%class%%, Student Name => %%name%% ,Student group=>%%id%%');
-$result1 = $obj1->toObject();
+$result1 = Objectron::toObject($arr, 'id', '%id%, Student Class=%class%, Student Name => %name% ,Student group=>%id%');
 
-$obj2 = new Objectron($arr, 'name', '%%id%%, %%class%%, %%name%%');
-$result2 = $obj2->toObject();
+$result2 = Objectron::toObject($arr, 'name', '%id%, %class%, %name%');
 
-$obj3 = new Objectron($arr, 'id', '%%name%%');
-$result3 = $obj3->toObject();
+$result3 = Objectron::toObject($arr, 'id', '%name%');
 
-$obj4 = new Objectron($arr, 'id');
-$result4 = $obj4->toObject();
+$result4 = Objectron::toObject($arr, 'id');
+
+$result5 = Objectron::toObject($arr);
 
 $end = microtime(true);
 $val = $end - $start;
-echo "Done in $val ms";
 
 print_r($result1);
 print_r($result2);
 print_r($result3);
 print_r($result4);
+print_r($result5);
+
+echo "Done in $val ms";
